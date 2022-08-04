@@ -1,0 +1,14 @@
+/*/
+!data-examples/
+!model/
+!psf/
+
+
+*.h5
+*.cat
+*.png
+*.pickle
+*.svg
+*.pdf
+
+*.pyc
