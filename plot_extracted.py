@@ -41,8 +41,8 @@ def match(gt, pred, thresh=10):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('fnsr', type=str, help='Super resolution fits file name')
-    parser.add_argument('fnsx', type=str, help='SExtractor file name')
-    parser.add_argument('fntr', type=str, help='True galparams file')
+    parser.add_argument('fnsx', type=str, help='SR SExtractor file name')
+    parser.add_argument('fntr', type=str, help='True SExtractor file')
     parser.add_argument('--outname', '-o', type=str, help='Output file name',
                         default='temp.png')
 
@@ -64,17 +64,17 @@ if __name__ == '__main__':
 
     t = np.genfromtxt(args.fntr)
     print(f'Number of original sources: {t.shape[0]}')
-    plt.scatter(t[..., 1], t[..., 0],  c='blue', label='True sources')
+    plt.scatter(t[..., 3], t[..., 4],  c='blue', label='True sources')
 
     print(f'Number of SExtracted sources: {sx.shape[0]}')
     plt.scatter(sx[..., 3], sx[..., 4],  c='red', label='Detected sources')
 
-    matches = match(t[..., (1, 0)], sx[..., 3:5])
+    matches = match(t[..., 3:5], sx[..., 3:5])
 
     matched_t = t[np.where(matches >= 0)]
     matched_sx = sx[matches[matches >= 0].astype(int)]
     for i in range(matched_t.shape[0]):
-        plt.plot([matched_t[i, 1], matched_sx[i, 3]], [matched_t[i, 0], matched_sx[i, 4]], 'k-')
+        plt.plot([matched_t[i, 3], matched_sx[i, 3]], [matched_t[i, 4], matched_sx[i, 4]], 'k-')
 
     print(f'\nNumber of matched sources: {matched_t.shape[0]}')
     missed_sources = t.shape[0] - len(matched_t)
