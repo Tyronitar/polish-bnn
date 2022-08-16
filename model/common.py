@@ -48,12 +48,12 @@ def evaluate(model, dataset, nbit=8):
 def evaluate_bnn(model, dataset, nbit=16):
     psnr_values = []
     for lr, hr in dataset:
-        lr = normalize_bnn(tf.cast(lr, tf.float32))
-        hr = normalize_bnn(tf.cast(hr, tf.float32))
+        lr = tf.cast(lr, tf.float32)
+        hr = tf.cast(hr, tf.float32) * 1e-9
         sr = resolve_bnn(model, lr)
         # if lr.shape[-1]==1:
         #     sr = sr[..., 0, None]
-#        psnr_value = psnr16(hr, sr)[0]
+        # psnr_value = psnr16(hr, sr)[0]
         psnr_value = psnr_bnn(hr, sr[..., :-1])[0]
         # sr = tf.cast(sr, tf.float32)
         # hr = tf.cast(hr, tf.float32)
@@ -68,8 +68,8 @@ def laplacian_loss(y_pred, y_true):
     # return tf.reduce_mean((tf.abs(y_true - mu)  * tf.math.exp(-s)) + s, axis=(1,2))
 
     ae = tf.abs(y_true - mu)
-    # l = (ae * tf.math.exp(-s)) + s
-    l = (ae / (s + 1e-7)) + tf.math.log(s + 1e-7)
+    l = (ae * tf.math.exp(-s)) + s
+    # l = (ae / (s + 1e-7)) + tf.math.log(s + 1e-7)
     # l = tf.where(tf.math.is_finite(l), l, 2**16-1)
     return mu, s, ae, l
     # l = (tf.abs(y_true - mu) / (s)) + tf.math.log(s)
@@ -140,11 +140,11 @@ def denormalize_bnn(x, rgb_mean=DIV2K_RGB_MEAN, nbit=16):
 
 
 def normalize_bnn(x):
-    # return x / (2.**16)
+    return x / (2.**16)
     # pos = 2 * (x - tf.math.reduce_min(x, axis=(1,2), keepdims=True)) / tf.math.reduce_max(tf.math.abs(x), axis=(1,2), keepdims=True) - 1
-    maxs = tf.math.reduce_max(tf.math.abs(x), axis=(1,2), keepdims=True)
-    denom = tf.where(maxs == 0, 1, maxs)
-    return x / denom
+    # maxs = tf.math.reduce_max(tf.math.abs(x), axis=(1,2), keepdims=True)
+    # denom = tf.where(maxs == 0, 1, maxs)
+    # return x / denom
     # normed = 2 * (x - tf.math.reduce_min(x, axis=(1,2), keepdims=True)) / (tf.math.reduce_max(x, axis=(1,2), keepdims=True) - tf.math.reduce_min(x ,axis=(1,2), keepdims=True)) - 1
     # print(f"Normed x: from\n{tf.math.reduce_min(normed, axis=(1,2))},\nto\n {tf.math.reduce_max(normed, axis=(1,2))}")
     return normed
@@ -176,7 +176,7 @@ def psnr(x1, x2, nbit=8):
     return tf.image.psnr(x1, x2, max_val=2**nbit - 1)
 
 def psnr_bnn(x1, x2):
-    return tf.image.psnr(x1, x2, max_val=1.0)
+    return tf.image.psnr(x1, x2, max_val=(2**16-1)*1e-9)
 
 def psnr16(x1, x2):
     return tf.image.psnr(x1, x2, max_val=2**16-1)

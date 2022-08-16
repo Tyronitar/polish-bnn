@@ -210,8 +210,8 @@ class BNNTrainer(Trainer):
             step = ckpt.step.numpy()
 
             oghr = tf.identity(hr)
-            lr = normalize_bnn(tf.cast(lr, tf.float32))
-            hr = normalize_bnn(tf.cast(hr, tf.float32))
+            lr = tf.cast(lr, tf.float32)
+            hr = tf.cast(hr, tf.float32)
 
             # loss_value = self.train_step(lr, hr)
             # loss_mean(loss_value)
