@@ -1,5 +1,6 @@
 import os
 import tensorflow as tf
+import numpy as np
 
 from tensorflow.python.data.experimental import AUTOTUNE
 
@@ -110,6 +111,7 @@ class RadioSky:
 
     def _hr_image_files(self):
         images_dir = self._hr_images_dir()
+        return [os.path.join(images_dir, f'{image_id:04}.npy') for image_id in self.image_ids]
         return [os.path.join(images_dir, f'{image_id:04}.png') for image_id in self.image_ids]
 
     def _lr_image_files(self):
@@ -118,8 +120,10 @@ class RadioSky:
 
     def _lr_image_file(self, image_id):
         if not self._ntire_2018 or self.scale == 8:
+            return f'{image_id:04}x{self.scale}.npy'
             return f'{image_id:04}x{self.scale}.png'
         else:
+            return f'{image_id:04}x{self.scale}{self.downgrade[0]}.npy'
             return f'{image_id:04}x{self.scale}{self.downgrade[0]}.png'
 
     def _hr_images_dir(self):
@@ -142,15 +146,30 @@ class RadioSky:
 
     @staticmethod
     def _images_dataset(image_files, nchan=1):
-        ds = tf.data.Dataset.from_tensor_slices(image_files)
-        ds = ds.map(tf.io.read_file)
-        if nchan==3:
-            ds = ds.map(lambda x: tf.image.decode_png(x, channels=3), num_parallel_calls=AUTOTUNE)
-        elif nchan==1:
-            ds = ds.map(lambda x: tf.image.decode_png(x, dtype=tf.uint16, channels=1), num_parallel_calls=AUTOTUNE)
-        else:
-            print("Wrong number of channels")
-            return
+        l = lambda x: np.load(x)
+        ds = tf.data.Dataset.from_tensor_slices(list(map(l, image_files)))
+        # ds = tf.data.Dataset.from_tensor_slices(image_files)
+        # for x in ds:
+        #     print(l(x))
+        #     v = tf.keras.backend.get_value(x)
+        #     x = tf.convert_to_tensor(np.load(v))
+        #     print(x)
+        # print(ds)
+        # ds = ds.map(lambda x: tf.convert_to_tensor(np.load(tf.keras.backend.get_value(x))))
+
+        # print('\n\n\n\nAfter loading')
+        # for d in ds:
+        #     print(d)
+        # ds = ds.map(tf.io.read_file)
+        # if nchan==3:
+        #     ds = ds.map(lambda x: tf.convert_to_tensor(np.load(x)))
+        #     # ds = ds.map(lambda x: tf.image.decode_png(x, channels=3), num_parallel_calls=AUTOTUNE)
+        # elif nchan==1:
+        #     ds = ds.map(lambda x: tf.convert_to_tensor(np.load(x)))
+        #     # ds = ds.map(lambda x: tf.image.decode_png(x, dtype=tf.uint16, channels=1), num_parallel_calls=AUTOTUNE)
+        # else:
+        #     print("Wrong number of channels")
+        #     return
         
         return ds
 

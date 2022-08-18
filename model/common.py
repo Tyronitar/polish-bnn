@@ -16,6 +16,14 @@ def resolve(model, lr_batch):
     sr_batch = tf.cast(sr_batch, tf.uint8)
     return sr_batch
 
+
+def resolve_float(model, lr_batch):
+    lr_batch = tf.cast(lr_batch, tf.float32)
+    sr_batch = model(lr_batch)
+    sr_batch = tf.clip_by_value(sr_batch, -1.0, 1.0)
+    return sr_batch
+
+
 def resolve16(model, lr_batch, nbit=16):
     if nbit==8:
         casttype=tf.uint8
@@ -42,6 +50,16 @@ def evaluate(model, dataset, nbit=8):
         psnr_values.append(psnr_value)
     return tf.reduce_mean(psnr_values)
 
+def evaluate_float(model, dataset):
+    psnr_values = []
+    for lr, hr in dataset:
+        lr = tf.cast(lr, tf.float32)
+        hr = tf.cast(hr, tf.float32)
+        sr = resolve_float(model, lr)
+        psnr_value = psnr_float(hr, sr)[0]
+        psnr_values.append(psnr_value)
+    return tf.reduce_mean(psnr_values)
+
 # ---------------------------------------
 # BNN 
 # ---------------------------------------
@@ -49,12 +67,12 @@ def evaluate_bnn(model, dataset, nbit=16):
     psnr_values = []
     for lr, hr in dataset:
         lr = tf.cast(lr, tf.float32)
-        hr = tf.cast(hr, tf.float32) * 1e-9
-        sr = resolve_bnn(model, lr)
+        hr = tf.cast(hr, tf.float32)
+        sr = resolve_float(model, lr)
         # if lr.shape[-1]==1:
         #     sr = sr[..., 0, None]
         # psnr_value = psnr16(hr, sr)[0]
-        psnr_value = psnr_bnn(hr, sr[..., :-1])[0]
+        psnr_value = psnr_float(hr, sr[..., :-1])[0]
         # sr = tf.cast(sr, tf.float32)
         # hr = tf.cast(hr, tf.float32)
         # psnr_value = tf.keras.metrics.mean_absolute_error(hr, sr[..., :-1])
@@ -174,6 +192,9 @@ def denormalize_m11(x):
 
 def psnr(x1, x2, nbit=8):
     return tf.image.psnr(x1, x2, max_val=2**nbit - 1)
+
+def psnr_float(x1, x2):
+    return tf.image.psnr(x1, x2, max_val=2.0)
 
 def psnr_bnn(x1, x2):
     return tf.image.psnr(x1, x2, max_val=(2**16-1)*1e-9)

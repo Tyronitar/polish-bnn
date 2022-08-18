@@ -83,12 +83,10 @@ def normalize_data(data, nbit=16):
     convert to specified dtype
     """
     data = data - data.min()
-    data = data/data.max()
-    data *= (2**nbit-1)
-    if nbit==16:
-        data = data.astype(np.uint16)
-    elif nbit==8:
-        data = data.astype(np.uint8)
+    #  Change to range [-1, +1]
+    if data.max() != 0:
+        data = data/data.max()
+        data = data * 2 - 1
     return data
 
 def convolvehr(data, kernel, plotit=False, 
@@ -164,7 +162,7 @@ def create_LR_image(fl, kernel, fdirout=None,
                     galaxies=False, plotit=False, 
                     norm=True, sky=False, rebin=4, nbit=16, 
                     distort_psf=False, subset='train',
-                    nimages=800, nchan=1, save_img=True, nstart=0):
+                    nimages=800, nchan=1, save_img=False, nstart=0):
     """ Create a set of image pairs (true sky, dirty image) 
     and save to output directory 
 
@@ -227,10 +225,13 @@ def create_LR_image(fl, kernel, fdirout=None,
             if fdiroutLR is None:
                 fnout = fn.strip('.png')+'-conv.npy'
             else:
-                fnoutLR = fdiroutLR + fn.split('/')[-1][:-4] + 'x%d.png' % rebin
+                fnoutLR = fdiroutLR + fn.split('/')[-1][:-4] + 'x%d.npy' % rebin
+                # fnoutLR = fdiroutLR + fn.split('/')[-1][:-4] + 'x%d.png' % rebin
         else:
-            fn = '%04d.png'%(ii+nstart)
-            fnoutLR = fdiroutLR + fn[:-4] + 'x%d.png' % rebin
+            fn = '%04d.npy'%(ii+nstart)
+            # fn = '%04d.png'%(ii+nstart)
+            fnoutLR = fdiroutLR + fn[:-4] + 'x%d.npy' % rebin
+            # fnoutLR = fdiroutLR + fn[:-4] + 'x%d.png' % rebin
 
         if os.path.isfile(fnoutLR):
             print("File exists, skipping %s"%fnoutLR)
@@ -294,12 +295,26 @@ def create_LR_image(fl, kernel, fdirout=None,
         else:
             kernel_ = kernel
 
+
         dataLR, data_noise = convolvehr(data, kernel_, plotit=plotit, 
                                         rebin=rebin, norm=norm, nbit=nbit, 
                                         noise=True)
+        
+        data = data.astype(np.float32)
+        dataLR = dataLR.astype(np.float32)
 
-        data = normalize_data(data, nbit=nbit)
+        # data = normalize_data(data, nbit=nbit)
+        data = normalize_data(data, nbit=nbit)  # Normalize before making dirty image
         dataLR = normalize_data(dataLR, nbit=nbit)
+
+        plt.imshow(data)
+        plt.colorbar()
+        plt.savefig('fig.png')
+        plt.close()
+        plt.imshow(dataLR)
+        plt.colorbar()
+        plt.savefig('figLR.png')
+        plt.close()
 
         if nbit==8:
             if save_img:
@@ -324,7 +339,8 @@ def create_LR_image(fl, kernel, fdirout=None,
                 np.save(fnoutLR[:-4], dataLR)
 
         if galaxies or sky:
-            fnoutHR = fdiroutHR + fn.split('/')[-1][:-4] + '.png'
+            # fnoutHR = fdiroutHR + fn.split('/')[-1][:-4] + '.png'
+            fnoutHR = fdiroutHR + fn.split('/')[-1][:-4] + '.npy'
             fnoutHRnoise = fdiroutHR + fn.split('/')[-1][:-4] + 'noise.png'
 
             if nbit==8:

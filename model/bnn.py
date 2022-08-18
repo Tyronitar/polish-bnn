@@ -13,8 +13,8 @@ def wdsr_bnn(scale, num_filters=32, num_res_blocks=8, res_block_expansion=6, res
 
 def wdsr(scale, num_filters, num_res_blocks, res_block_expansion, res_block_scaling, res_block, p, nchan=1):
     x_in = Input(shape=(None, None, nchan))
-    x = Lambda(lambda z: z * 1e-9)(x_in)
-    x = Lambda(normalize)(x)
+    # x = Lambda(lambda z: z * 1e-9)(x_in)
+    # x = Lambda(normalize)(x_in)
 
     # main branch
     x = Dropout(p)(x_in, training=True)
@@ -31,7 +31,7 @@ def wdsr(scale, num_filters, num_res_blocks, res_block_expansion, res_block_scal
     s = Lambda(pixel_shuffle(scale))(s)
 
     x = Add()([m, s])
-    x = Dropout(p)(x, training=True)
+    # x = Dropout(p)(x, training=True)
     # x = res_block(x, nchan + 1, res_block_expansion, kernel_size=3, scaling=res_block_scaling, p=p)
     # x = conv2d_weightnorm(8 * (nchan + 1), 1, padding='same')(x)
     # x = Dropout(p)(x, training=True)
@@ -40,9 +40,9 @@ def wdsr(scale, num_filters, num_res_blocks, res_block_expansion, res_block_scal
     # x = conv2d_weightnorm(nchan + 1, 1, padding='same', name=f'conv2d_sigmoid', activation='sigmoid')(x)
     # x = conv2d_weightnorm(nchan + 1, 1, padding='same')(x)
     # x = Lambda(normalize_bnn)(x)
-    x = Lambda(denormalize)(x)
-    x = Lambda(lambda z: z * 1e-9)(x)
-    # x = Lambda(lambda z: z * 1e-7)(x)
+    # x = Lambda(denormalize)(x)
+    # x = Lambda(lambda z: z * 1e-9)(x)
+    x = Lambda(lambda z: z * 1e-2)(x)
     # x = Lambda(lambda z: tf.clip_by_value(z, 0, (2**16-1)*1e-7))(x)
 
     return Model(x_in, x, name="wdsr_bnn")

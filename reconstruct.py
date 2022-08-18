@@ -5,7 +5,7 @@ import optparse
 import matplotlib.pylab as plt
 import numpy as np
 
-from model import resolve_single, normalize_bnn, resolve_bnn
+from model import resolve_single, normalize_bnn, resolve_bnn, resolve_float
 from utils import load_image, plot_sample
 from model.wdsr import wdsr_b
 from model.bnn import wdsr_bnn
@@ -43,28 +43,35 @@ def reconstruct(fn_img, fn_model, scale, fnhr=None,
       except:
           return 
 
-    datalr = tf.squeeze(normalize_bnn(datalr[None, ...]))
+    # datalr = tf.squeeze(normalize_bnn(datalr[None, ...]))
 
+    print(f'\n\n{fnhr}\n\n')
+    datahr = None
     if fnhr is not None:
         if fnhr.endswith('npy'):
-            datalr = np.load(fnhr)[:, :]
+            datahr = np.load(fnhr)[:, :]
         elif fnhr.endswith('png'):
           try:
               datahr = load_image(fnhr)
           except:
               return 
-        datahr = tf.squeeze(normalize_bnn(datahr[None, ...]))
-    else:
-        datahr = None
+        # datahr = tf.squeeze(normalize_bnn(datahr[None, ...]))
 
 
     model = wdsr_bnn(scale=scale, num_res_blocks=32)
     model.load_weights(fn_model)
-    datalr = datalr[None,:,:,None]
+    datalr = datalr[None,:,:]
 
 
-    datasr = resolve_bnn(model, datalr)
-    datasr = datasr.numpy()
+
+
+    # datasr = resolve_bnn(model, datalr)
+    T = 15
+    srs = np.stack([resolve_bnn(model, datalr).numpy().squeeze() for _ in range(T)])
+    print(srs.shape)
+    datasr = np.stack([np.mean(srs[..., 0], axis=0), np.mean(2 * np.exp(srs[..., 1]), axis=0), np.var(srs[..., 0], axis=0)])
+    print(datasr.shape)
+    # datasr = datasr.numpy()
     return datalr, datasr, datahr
 
 def plot_reconstruction(datalr, datasr, datahr=None, vm=1, 
@@ -81,46 +88,69 @@ def plot_reconstruction(datalr, datasr, datahr=None, vm=1,
     vmaxhr=22500
     vmaxhr=2**16-1
 
-    if nsub==3:
-        fig = plt.figure(figsize=(10,6))
-    if nsub==4:
-        fig = plt.figure(figsize=(13,6))
+    if nsub==5:
+        fig = plt.figure(figsize=(16,6))
+    if nsub==6:
+        fig = plt.figure(figsize=(19,6))
+
     ax1 = plt.subplot(1,nsub,1)
-    plt.title('Dirty map', color='C1', fontsize=17)
+    plt.title('(a) True sky', c='k', fontsize=17)
+    hr = datahr
+    print(f'hr range: [{np.min(datahr)}, {np.max(datahr)}]')
+    im1 = plt.imshow(hr, cmap=cmap, vmax=1, vmin=-1, 
+            aspect='auto', extent=[0,1,0,1])
+    plt.axis('off')
+    # print(tf.image.psnr(datahr, datasr, max_val=2.0)[0])
+    # print(20 * np.log10(2.0) - 10 * np.log10(np.mean((datahr - datasr)**2)))
+    plt.colorbar(im1, ax=ax1, orientation='horizontal', pad=0.05, fraction=0.05)
+
+    ax2 = plt.subplot(1,nsub,2, sharex=ax1, sharey=ax1)
+    plt.title('(b) Dirty map', color='k', fontsize=17)
     plt.axis('off')
     print(f'lr range: [{np.min(datalr)}, {np.max(datalr)}]')
     lr = datalr[0, ..., 0]
-    plt.imshow(lr, cmap=cmap, vmax=1, vmin=0, 
+    im2 = plt.imshow(lr, cmap=cmap, vmax=1, vmin=-1, 
                aspect='auto', extent=[0,1,0,1])
-    plt.setp(ax1.spines.values(), color='C1')
+    plt.setp(ax2.spines.values(), color='k')
+    plt.colorbar(im2, ax=ax2, orientation='horizontal', pad=0.05, fraction=0.05)
     
-    ax2 = plt.subplot(1,nsub,2, sharex=ax1, sharey=ax1)
-    plt.title('POLISH reconstruction', c='C2', fontsize=17)
-    sr = datasr[0, ..., 0]
-    print(f'sr range: [{np.min(datasr[..., 0])}, {np.max(datasr[..., 0])}]')
-    plt.imshow(sr, cmap=cmap, vmax=1, vmin=0, 
-              aspect='auto', extent=[0,1,0,1])
-    plt.axis('off')
-
     ax3 = plt.subplot(1,nsub,3, sharex=ax1, sharey=ax1)
-    plt.title('POLISH Uncertainty', c='C2', fontsize=17)
-    sr_sig = 2 * (datasr[0, ..., 1])**2
-    print(f'b range: [{np.min(datasr[..., 1])}, {np.max(datasr[..., 1])}]')
-    plt.imshow(sr_sig, cmap=cmap, vmax=2, vmin=0,
+    plt.title('(c) Reconstruction', c='C2', fontsize=17)
+    sr = datasr[0, ...]
+    print(f'sr range: [{np.min(sr)}, {np.max(sr)}]')
+    im3 = plt.imshow(sr, cmap=cmap, vmax=1, vmin=-1, 
               aspect='auto', extent=[0,1,0,1])
     plt.axis('off')
+    plt.colorbar(im3, ax=ax3, orientation='horizontal', pad=0.05, fraction=0.05)
 
 
-    if nsub==4:
-        ax4 = plt.subplot(1,nsub,4, sharex=ax1, sharey=ax1)
-        plt.title('True sky', c='k', fontsize=17)
-        hr = datahr
-        print(f'hr range: [{np.min(datahr)}, {np.max(datahr)}]')
-        plt.imshow(hr, cmap=cmap, vmax=1, vmin=0, 
-                  aspect='auto', extent=[0,1,0,1])
-        plt.axis('off')
+    ax4 = plt.subplot(1,nsub,4, sharex=ax1, sharey=ax1)
+    plt.title('(d) Aleatoric Uncertainty', c='C2', fontsize=17)
+    sr_au = datasr[1, ...]
+    print(f'Aleatoric range: [{np.min(sr_au)}, {np.max(sr_au)}]')
+    im4 = plt.imshow(sr_au, cmap='jet', 
+              aspect='auto', extent=[0,1,0,1])
+    plt.axis('off')
+    plt.colorbar(im4, ax=ax4, orientation='horizontal', pad=0.05, fraction=0.05)
 
-    
+    ax5 = plt.subplot(1,nsub,5, sharex=ax1, sharey=ax1)
+    plt.title('(e) Epistemic Uncertainty', c='C2', fontsize=17)
+    sr_eu = datasr[2, ...]
+    print(f'Epistemic range: [{np.min(sr_eu)}, {np.max(sr_eu)}]')
+    im5 = plt.imshow(sr_eu, cmap='jet', 
+              aspect='auto', extent=[0,1,0,1])
+    plt.axis('off')
+    plt.colorbar(im5, ax=ax5, orientation='horizontal', pad=0.05, fraction=0.05)
+
+    ax6 = plt.subplot(1,nsub,6, sharex=ax1, sharey=ax1)
+    plt.title('(f) Absolute Error', c='C3', fontsize=17)
+    ae = np.abs(datahr.squeeze() - sr)
+    print(f'Absolute Error range: [{np.min(ae)}, {np.max(ae)}]')
+    im6 = plt.imshow(ae, cmap='jet', 
+              aspect='auto', extent=[0,1,0,1])
+    plt.axis('off')
+    plt.colorbar(im6, ax=ax6, orientation='horizontal', pad=0.05, fraction=0.05)
+
     # del lr, sr, hr
 
     # psnr_polish = tf.image.psnr(tf.convert_to_tensor(datasr[None, ..., 0].astype(np.uint16)),
@@ -140,6 +170,7 @@ def plot_reconstruction(datalr, datasr, datahr=None, vm=1,
     plt.tight_layout()
     plt.show()
     plt.savefig('reconstruction.png')
+    plt.savefig('reconstruction.pdf')
 
 if __name__=='__main__':
     # Example usage:
@@ -170,9 +201,9 @@ if __name__=='__main__':
                                  fnhr=options.fnhr, nbit=options.nbit)
 
     if datahr is not None:
-        nsub = 4 
+        nsub = 6 
     else:
-        nsub = 3
+        nsub = 5
 
     if options.plotit:
         plot_reconstruction(datalr, datasr, datahr=datahr, vm=1, nsub=nsub)

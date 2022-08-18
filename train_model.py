@@ -10,7 +10,7 @@ from model.bnn import wdsr_bnn
 from train import WdsrTrainer, BNNTrainer
 
 def main(images_dir, caches_dir, fnoutweights, ntrain=800, nvalid=100,
-         scale=4, nchan=1, nbit=16, num_res_blocks=32, batchsize=1,
+         scale=4, nchan=1, nbit=16, num_res_blocks=32, batchsize=4,
          train_steps=10000):
 
     train_loader = RadioSky(scale=scale,  # 2, 3, 4 or 9
@@ -56,7 +56,7 @@ def main(images_dir, caches_dir, fnoutweights, ntrain=800, nvalid=100,
     trainer.train(train_ds,
                   valid_ds.take(10),
                   steps=train_steps,
-                  evaluate_every=1, 
+                  evaluate_every=1000, 
                   save_best_only=True)
 
     trainer.restore()

@@ -38,22 +38,22 @@ def wdsr2(scale, num_filters, num_res_blocks, res_block_expansion, res_block_sca
 
 def wdsr(scale, num_filters, num_res_blocks, res_block_expansion, res_block_scaling, res_block, nchan=1):
     x_in = Input(shape=(None, None, nchan))
-    x = Lambda(normalize)(x_in)
+    # x = Lambda(normalize)(x_in)
 
     # main branch
 #    m = conv2d_weightnorm(num_filters, 3, padding='same')(x)
-    m = conv2d_weightnorm(num_filters, nchan, padding='same')(x)
+    m = conv2d_weightnorm(num_filters, nchan, padding='same')(x_in)
     for i in range(num_res_blocks):
         m = res_block(m, num_filters, res_block_expansion, kernel_size=3, scaling=res_block_scaling)
     m = conv2d_weightnorm(nchan * scale ** 2, 3, padding='same', name=f'conv2d_main_scale_{scale}')(m)
     m = Lambda(pixel_shuffle(scale))(m)
 
     # skip branch
-    s = conv2d_weightnorm(nchan * scale ** 2, 5, padding='same', name=f'conv2d_skip_scale_{scale}')(x)
+    s = conv2d_weightnorm(nchan * scale ** 2, 5, padding='same', name=f'conv2d_skip_scale_{scale}')(x_in)
     s = Lambda(pixel_shuffle(scale))(s)
 
     x = Add()([m, s])
-    x = Lambda(denormalize)(x)
+    # x = Lambda(denormalize)(x)
 
     return Model(x_in, x, name="wdsr")
 

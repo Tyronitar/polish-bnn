@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import time
 import tensorflow as tf
 
-from model import evaluate
+from model import evaluate, evaluate_float
 from model import srgan
 from model import laplacian_loss, gaussian_loss, evaluate_bnn
 from model import normalize, normalize_bnn
@@ -137,7 +137,8 @@ class Trainer:
 
 
     def evaluate(self, dataset, nbit=16):
-        return evaluate(self.checkpoint.model, dataset, nbit=nbit)
+        # return evaluate(self.checkpoint.model, dataset, nbit=nbit)
+        return evaluate_float(self.checkpoint.model, dataset)
 
     def restore(self):
         if self.checkpoint_manager.latest_checkpoint:
@@ -193,8 +194,8 @@ class BNNTrainer(Trainer):
         gradients = tape.gradient(loss_value, self.checkpoint.model.trainable_variables)
         self.checkpoint.optimizer.apply_gradients(zip(gradients, self.checkpoint.model.trainable_variables))
 
-        return mu, s, ae, l
-        # return loss_value
+        # return mu, s, ae, l
+        return loss_value
 
     def train(self, train_dataset, valid_dataset, steps,
               evaluate_every=1000, save_best_only=False, nbit=16):
@@ -212,60 +213,64 @@ class BNNTrainer(Trainer):
             oghr = tf.identity(hr)
             lr = tf.cast(lr, tf.float32)
             hr = tf.cast(hr, tf.float32)
+            # print(tf.math.reduce_min(lr))
+            # print(tf.math.reduce_max(lr))
+            # print(tf.math.reduce_min(hr))
+            # print(tf.math.reduce_max(hr))
 
-            # loss_value = self.train_step(lr, hr)
-            # loss_mean(loss_value)
+            loss_value = self.train_step(lr, hr)
+            loss_mean(loss_value)
 
-            mu, s, ae, l = self.train_step(lr, hr)
+            # mu, s, ae, l = self.train_step(lr, hr)
 
-            print(f'\nstep {step}:')
-            print(f'  Num non-finite: {tf.math.reduce_sum(tf.cast(~tf.math.is_finite(l), tf.float32))}')
-            print(f'  Min:  {tf.math.reduce_min(l)}')
-            print(f'  Max:  {tf.math.reduce_max(l)}')
+            # print(f'\nstep {step}:')
+            # print(f'  Num non-finite: {tf.math.reduce_sum(tf.cast(~tf.math.is_finite(l), tf.float32))}')
+            # print(f'  Min:  {tf.math.reduce_min(l)}')
+            # print(f'  Max:  {tf.math.reduce_max(l)}')
 
-            # lterm = ae * tf.math.exp(-s)
-            # lterm = ae / (tf.math.log(s + 1e-7))
-            # print(f'  lterm Num non-finite: {tf.math.reduce_sum(tf.cast(~tf.math.is_finite(lterm), tf.float32))}')
-            # print(f'  lterm min:  {tf.math.reduce_min(lterm)}')
-            # print(f'  lterm max:  {tf.math.reduce_max(lterm)}')
+            # # lterm = ae * tf.math.exp(-s)
+            # # lterm = ae / (tf.math.log(s + 1e-7))
+            # # print(f'  lterm Num non-finite: {tf.math.reduce_sum(tf.cast(~tf.math.is_finite(lterm), tf.float32))}')
+            # # print(f'  lterm min:  {tf.math.reduce_min(lterm)}')
+            # # print(f'  lterm max:  {tf.math.reduce_max(lterm)}')
 
-            fig, axs = plt.subplots(1, 7,figsize=(12.0, 3.0))
-            im0 = axs[0].imshow(hr[0])
-            axs[0].set_title('GT')
-            fig.colorbar(im0, ax=axs[0])
+            # fig, axs = plt.subplots(1, 7,figsize=(12.0, 3.0))
+            # im0 = axs[0].imshow(hr[0])
+            # axs[0].set_title('GT')
+            # fig.colorbar(im0, ax=axs[0])
 
-            im1 = axs[1].imshow(lr[0])
-            axs[1].set_title('Input')
-            fig.colorbar(im1, ax=axs[1])
+            # im1 = axs[1].imshow(lr[0])
+            # axs[1].set_title('Input')
+            # fig.colorbar(im1, ax=axs[1])
 
-            im2 = axs[2].imshow(mu[0])
-            axs[2].set_title('$\\mu$')
-            fig.colorbar(im2, ax=axs[2])
+            # im2 = axs[2].imshow(mu[0])
+            # axs[2].set_title('$\\mu$')
+            # fig.colorbar(im2, ax=axs[2])
 
-            im3 = axs[3].imshow(s[0])
-            axs[3].set_title('$\\sigma$')
-            fig.colorbar(im3, ax=axs[3])
+            # im3 = axs[3].imshow(s[0])
+            # axs[3].set_title('$\\sigma$')
+            # fig.colorbar(im3, ax=axs[3])
 
-            im4 = axs[4].imshow(ae[0])
-            axs[4].set_title('$|\\mu - GT|$')
-            fig.colorbar(im4, ax=axs[4])
+            # im4 = axs[4].imshow(ae[0])
+            # axs[4].set_title('$|\\mu - GT|$')
+            # fig.colorbar(im4, ax=axs[4])
 
-            im5 = axs[5].imshow(l[0])
-            axs[5].set_title('$\\mathcal{L}$')
-            fig.colorbar(im5, ax=axs[5])
+            # im5 = axs[5].imshow(l[0])
+            # axs[5].set_title('$\\mathcal{L}$')
+            # fig.colorbar(im5, ax=axs[5])
 
-            im6 = axs[6].imshow(oghr[0])
-            axs[6].set_title('OG GT')
-            fig.colorbar(im6, ax=axs[6])
+            # im6 = axs[6].imshow(oghr[0])
+            # axs[6].set_title('OG GT')
+            # fig.colorbar(im6, ax=axs[6])
 
-            plt.tight_layout()
-            plt.savefig(f'loss_fig/step_{step}.png')
-            plt.close()
+            # plt.tight_layout()
+            # plt.savefig(f'loss_fig/step_{step}.png')
+            # plt.close()
 
-            loss_value = tf.math.reduce_mean(l)
-            print(f'  loss: {loss_value}')
+            # loss_value = tf.math.reduce_mean(l)
+            # print(f'  loss: {loss_value}')
 
-            loss_mean(l)
+            # loss_mean(l)
             
 
             if step % evaluate_every == 0:
