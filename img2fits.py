@@ -8,7 +8,8 @@ import matplotlib.pylab as plt
 
 from utils import load_image, plot_sample
 from model.wdsr import wdsr_b
-from model.common import resolve_single, tf
+from model.bnn import wdsr_bnn
+from model.common import resolve_single, tf, resolve_t
 
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -31,6 +32,7 @@ def img2fits(fn_img, fn_fits_example, fn_fitsout):
     hdu = fits.PrimaryHDU(data=data, header=header_example)
     hdu.writeto(fn_fitsout)
 
+
 if __name__=='__main__':
     # Example usage:
     # Generate images on training data:
@@ -39,7 +41,7 @@ if __name__=='__main__':
     # for im in ./images/PSF-nkern64-4x/valid/*png;do python generate-hr.py $im ./weights-psf-4x.h5;done
 
     parser = argparse.ArgumentParser(prog="img2fits.py",
-                                   description="Convert png to fits mainly.")
+                                   description="Convert npy to fits mainly.")
     parser.add_argument('indir', type=str, help='In directory')
     parser.add_argument('fn_model', type=str, help='Model .h5 filename')
     parser.add_argument('-r', '--scale', dest='scale', type=int,
@@ -49,7 +51,7 @@ if __name__=='__main__':
     indir = args.indir
     fn_model = args.fn_model
 
-    model = wdsr_b(scale=args.scale, num_res_blocks=32)
+    model = wdsr_bnn(scale=args.scale, num_res_blocks=32)
     model.load_weights(fn_model)
 
     # fdiroutTRAIN = indir+'/train/'
@@ -61,32 +63,34 @@ if __name__=='__main__':
         os.system('mkdir -p %s' % fdiroutFITS)
     
     # fltrain = glob.glob(fdiroutTRAIN+'/*png')
-    flvalid = glob.glob(fdiroutVALID+'/*png')
+    flvalid = glob.glob(fdiroutVALID+'/*npy')
 
     # fltrain = glob.glob(indir+'/POLISH_train_HR/*.png') + glob.glob(indir+'/POLISH_train_HR/x%d/*.png'%args.scale)
-    flvalid = glob.glob(indir+'/POLISH_valid*/*.png') + glob.glob(indir+'/POLISH_valid*/X%d/*.png'%args.scale)
+    flvalid = glob.glob(indir+'/POLISH_valid*/*.npy') + glob.glob(indir+'/POLISH_valid*/X%d/*.npy'%args.scale)
     print(flvalid)
     
     for fn in flvalid:
         if 'x%d'%args.scale in fn:
-            fn_fitsout_SR = fdiroutFITS + fn.split('/')[-1].strip('x%d.png'%args.scale)+'SR.fits'
+            fn_fitsout_SR = fdiroutFITS + fn.split('/')[-1].strip('x%d.npy'%args.scale)+'SR.fits'
             if os.path.exists(fn_fitsout_SR):
                 continue
-            datalr = load_image(fn)
+            # datalr = load_image(fn)
+            datalr = np.load(fn)
             datalr = datalr[:,:,None]
-            datasr = resolve_single(model, datalr)
+            datasr = resolve_t(model, datalr)
             datasr = datasr.numpy()[..., 0]
             img2fits(datasr, fn_fits_example, fn_fitsout_SR)
             continue
 
-        fn_fitsout_HR = fdiroutFITS + fn.split('/')[-1].strip('.png')+'.fits'
+        fn_fitsout_HR = fdiroutFITS + fn.split('/')[-1].strip('.npy')+'.fits'
         # fn_fitsout_HRnoise = fdiroutFITS + fn.split('/')[-1].strip('.png')+'noise.fits'        
         # fn_fitsout_LR = fdiroutFITS + fn.split('/')[-1].strip('.png')+'x%d.fits'%args.scale
         if os.path.exists(fn_fitsout_HR):
             continue
         # if os.path.exists(fn_fitsout_LR):
         #     continue
-        data = load_image(fn)
+        # data = load_image(fn)
+        data = np.load(fn)
         img2fits(data, fn_fits_example, fn_fitsout_HR)
         # print("Wrote to fits:\n%s"%fn_fitsout_HR)
         # img2fits(dataLR, fn_fits_example, fn_fitsout_LR)

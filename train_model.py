@@ -13,56 +13,56 @@ def main(images_dir, caches_dir, fnoutweights, ntrain=800, nvalid=100,
          scale=4, nchan=1, nbit=16, num_res_blocks=32, batchsize=4,
          train_steps=10000):
 
-    train_loader = RadioSky(scale=scale,  # 2, 3, 4 or 9
-                     downgrade='bicubic', # 'bicubic', 'unknown', 'mild' or 'difficult' 
-                     subset='train',
-                     images_dir=images_dir,
-                     caches_dir=caches_dir,
-                     nchan=nchan,
-                     ntrain=ntrain,
-                     nvalid=nvalid)       # Training dataset are images 001 - 800
+    # train_loader = RadioSky(scale=scale,  # 2, 3, 4 or 9
+    #                  downgrade='bicubic', # 'bicubic', 'unknown', 'mild' or 'difficult' 
+    #                  subset='train',
+    #                  images_dir=images_dir,
+    #                  caches_dir=caches_dir,
+    #                  nchan=nchan,
+    #                  ntrain=ntrain,
+    #                  nvalid=nvalid)       # Training dataset are images 001 - 800
 
-    # Create a tf.data.Dataset         
-    train_ds = train_loader.dataset(batch_size=batchsize,  # batch size as described in the EDSR and WDSR papers
-                                random_transform=True, # random crop, flip, rotate as described in the EDSR paper
-                                repeat_count=None)     # repeat iterating over training images indefinitely
+    # # Create a tf.data.Dataset         
+    # train_ds = train_loader.dataset(batch_size=batchsize,  # batch size as described in the EDSR and WDSR papers
+    #                             random_transform=True, # random crop, flip, rotate as described in the EDSR paper
+    #                             repeat_count=None)     # repeat iterating over training images indefinitely
 
-    valid_loader = RadioSky(scale=scale,             # 2, 3, 4 or 8
-                     downgrade='bicubic', # 'bicubic', 'unknown', 'mild' or 'difficult' 
-                     subset='valid',
-                     images_dir=images_dir,
-                     caches_dir=caches_dir,
-                     ntrain=ntrain,
-                     nvalid=nvalid)      # Validation dataset are images 801 - 900
+    # valid_loader = RadioSky(scale=scale,             # 2, 3, 4 or 8
+    #                  downgrade='bicubic', # 'bicubic', 'unknown', 'mild' or 'difficult' 
+    #                  subset='valid',
+    #                  images_dir=images_dir,
+    #                  caches_dir=caches_dir,
+    #                  ntrain=ntrain,
+    #                  nvalid=nvalid)      # Validation dataset are images 801 - 900
                      
-    # Create a tf.data.Dataset          
-    valid_ds = valid_loader.dataset(batch_size=1,           # use batch size of 1 as DIV2K images have different size
-                                random_transform=False, # use DIV2K images in original size 
-                                repeat_count=1)         # 1 epoch
+    # # Create a tf.data.Dataset          
+    # valid_ds = valid_loader.dataset(batch_size=1,           # use batch size of 1 as DIV2K images have different size
+    #                             random_transform=False, # use DIV2K images in original size 
+    #                             repeat_count=1)         # 1 epoch
 
 
     print("Note we are assuming the following model checkpoint:",
         f'.ckpt/%s'%fnoutweights.strip('.h5'))
-    # trainer = WdsrTrainer(model=wdsr_b(scale=scale, num_res_blocks=num_res_blocks, nchan=nchan), 
-    #                   checkpoint_dir=f'.ckpt/%s'%fnoutweights.strip('.h5'))
-    trainer = BNNTrainer(model=wdsr_bnn(scale=scale, num_res_blocks=num_res_blocks, nchan=nchan, p=0.2), 
+    trainer = WdsrTrainer(model=wdsr_b(scale=scale, num_res_blocks=num_res_blocks, nchan=nchan), 
                       checkpoint_dir=f'.ckpt/%s'%fnoutweights.strip('.h5'))
+    # trainer = BNNTrainer(model=wdsr_bnn(scale=scale, num_res_blocks=num_res_blocks, nchan=nchan, p=0.2), 
+    #                   checkpoint_dir=f'.ckpt/%s'%fnoutweights.strip('.h5'))
 
     # Train WDSR B model for train_steps steps and evaluate model
     # every 1000 steps on the first 10 images of the DIV2K
     # validation set. Save a checkpoint only if evaluation
     # PSNR has improved.
 
-    trainer.train(train_ds,
-                  valid_ds.take(10),
-                  steps=train_steps,
-                  evaluate_every=1000, 
-                  save_best_only=True)
+    # trainer.train(train_ds,
+    #               valid_ds.take(10),
+    #               steps=train_steps,
+    #               evaluate_every=1000, 
+    #               save_best_only=True)
 
-    trainer.restore()
+    # trainer.restore()
     # Evaluate model on full validation set.
-    psnr = trainer.evaluate(valid_ds)
-    print(f'PSNR = {psnr.numpy():3f}')
+    # psnr = trainer.evaluate(valid_ds)
+    # print(f'PSNR = {psnr.numpy():3f}')
 
     # Save weights to separate location.
     trainer.model.save_weights(fnoutweights)

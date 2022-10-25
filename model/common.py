@@ -24,6 +24,19 @@ def resolve_float(model, lr_batch):
     return sr_batch
 
 
+def resolve_t(model, lr_batch, T=15):
+    lr_batch = tf.cast(lr_batch, tf.float32)
+    sr_batch = tf.stack([model(lr_batch) for t in range(T)])
+    sr_batch = tf.reduce_mean(sr_batch, axis=0)
+    sr_batch = tf.clip_by_value(sr_batch, -1.0, 1.0)
+    return sr_batch
+
+
+def bnn_output(model, lr_batch, T=15):
+    srs = np.stack([resolve_float(model, lr_batch).numpy().squeeze() for _ in range(T)])
+    return np.mean(srs[..., 0], axis=0), np.mean(2 * np.exp(srs[..., 1]), axis=0), np.var(srs[..., 0], axis=0)
+
+
 def resolve16(model, lr_batch, nbit=16):
     if nbit==8:
         casttype=tf.uint8
@@ -68,7 +81,8 @@ def evaluate_bnn(model, dataset, nbit=16):
     for lr, hr in dataset:
         lr = tf.cast(lr, tf.float32)
         hr = tf.cast(hr, tf.float32)
-        sr = resolve_float(model, lr)
+        # sr = resolve_float(model, lr)
+        sr = resolve_t(model, lr)
         # if lr.shape[-1]==1:
         #     sr = sr[..., 0, None]
         # psnr_value = psnr16(hr, sr)[0]
@@ -195,6 +209,9 @@ def psnr(x1, x2, nbit=8):
 
 def psnr_float(x1, x2):
     return tf.image.psnr(x1, x2, max_val=2.0)
+
+def ssim_float(x1, x2):
+    return tf.image.ssim(x1, x2, max_val=2.0)
 
 def psnr_bnn(x1, x2):
     return tf.image.psnr(x1, x2, max_val=(2**16-1)*1e-9)

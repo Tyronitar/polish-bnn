@@ -113,11 +113,12 @@ def convolvehr(data, kernel, plotit=False,
     else:
         data_noise = data
 
+    # data = normalize_data(data, nbit=nbit)  # Normalize before making dirty image
     dataLR = signal.fftconvolve(data_noise, kernel, mode='same')
 
-    if norm is True:
-         dataLR = normalize_data(dataLR, nbit=nbit)
-         data = normalize_data(data, nbit=nbit)
+    # if norm is True:
+    #      dataLR = normalize_data(dataLR, nbit=nbit)
+    #      data = normalize_data(data, nbit=nbit)
 
     dataLR = dataLR[rebin//2::rebin, rebin//2::rebin]
 
@@ -296,15 +297,15 @@ def create_LR_image(fl, kernel, fdirout=None,
             kernel_ = kernel
 
 
+        # data = data.astype(np.float32)
+
         dataLR, data_noise = convolvehr(data, kernel_, plotit=plotit, 
                                         rebin=rebin, norm=norm, nbit=nbit, 
                                         noise=True)
         
-        data = data.astype(np.float32)
         dataLR = dataLR.astype(np.float32)
 
-        # data = normalize_data(data, nbit=nbit)
-        data = normalize_data(data, nbit=nbit)  # Normalize before making dirty image
+        data = normalize_data(data, nbit=nbit)
         dataLR = normalize_data(dataLR, nbit=nbit)
 
         plt.imshow(data)

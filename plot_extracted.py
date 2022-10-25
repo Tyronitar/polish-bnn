@@ -1,6 +1,7 @@
 import argparse
 import pickle
 
+import seaborn as sns 
 from scipy.spatial.distance import cdist
 import numpy as np
 import matplotlib.pyplot as plt
@@ -89,3 +90,19 @@ if __name__ == '__main__':
     plt.show()
     plt.savefig(args.outname)
     pickle.dump(fig, open(args.outname.split('.')[-2]+'.pickle', 'wb'))
+    plt.close()
+
+    # cm = np.array([[matched_t.shape[0], missed_sources], [extra_sources, 0]])
+    cm = np.array([[185, 31], [17, 0]])
+    xcategories = ['Detected', 'Missed']
+    fig = plt.figure(figsize=(3, 3))
+    ycategories = ['Positive', 'Negative']
+    sns.heatmap(cm/np.sum(cm), annot=True, 
+            fmt='.2%', cmap='Blues', cbar=False,
+            xticklabels=xcategories, yticklabels=ycategories)
+    plt.ylabel('True Label')
+    plt.xlabel('SExtractor Status')
+    plt.tight_layout()
+    plt.show()
+    plt.savefig('confusion.png')
+
