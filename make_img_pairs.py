@@ -308,15 +308,6 @@ def create_LR_image(fl, kernel, fdirout=None,
         data = normalize_data(data, nbit=nbit)
         dataLR = normalize_data(dataLR, nbit=nbit)
 
-        plt.imshow(data)
-        plt.colorbar()
-        plt.savefig('fig.png')
-        plt.close()
-        plt.imshow(dataLR)
-        plt.colorbar()
-        plt.savefig('figLR.png')
-        plt.close()
-
         if nbit==8:
             if save_img:
                 cv2.imwrite(fnoutLR, dataLR.astype(np.uint8))
