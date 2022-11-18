@@ -75,7 +75,7 @@ if __name__=='__main__':
     parser.add_option("-c", "--cachdir", dest="caches_dir", default=None,
                       help="directory with training/validation image data")
     parser.add_option("-f", "--fnout", dest="fnout_model", type=str, default='model.h5',
-                      help="directory with training/validation image data")
+                      help="directory to save model weights")
     parser.add_option("-r", "--scale", dest="scale", type=int, default=4,
                       help="upsample factor")
     parser.add_option("--nchan", dest="nchan", type=int, default=1,
@@ -110,10 +110,3 @@ if __name__=='__main__':
          nbit=options.nbit, 
          num_res_blocks=options.num_res_blocks, 
          train_steps=options.train_steps)
-
-
-
-
-
-
-
